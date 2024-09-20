@@ -110,6 +110,10 @@ uint8_t RTKrxbuffer[64];        // don't know what size is needed, larger buffer
 
 extern "C" uint32_t set_arm_clock(uint32_t frequency);  // required prototype to set CPU speed
 
-
-
-
+// UDP Passthrough
+bool udpPassthrough = false;  // False = GPS neeeds to send GGA, VTG & HPR messages. True = GPS needs to send KSXT messages only.
+bool gotCR = false;
+bool gotLF = false;
+bool gotDollar = false;
+char msgBuf[254];
+int msgBufLen = 0;

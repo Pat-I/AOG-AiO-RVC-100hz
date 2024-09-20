@@ -106,7 +106,71 @@ void loop()
 
       uint8_t gps1Read = SerialGPS1.read();
       if (nmeaDebug) Serial.write(gps1Read);
-      nmeaParser << gps1Read;
+
+      if ( udpPassthrough == false)
+      {
+        nmeaParser << gps1Read;
+      } else {
+        
+        switch (gps1Read)
+        {
+        case '$':
+          msgBuf[msgBufLen] = gps1Read;
+          msgBufLen++;
+          gotDollar = true;
+          break;
+        case '\r':
+          msgBuf[msgBufLen] = gps1Read;
+          msgBufLen++;
+          gotCR = true;
+          gotDollar = false;
+          break;
+        case '\n':
+          msgBuf[msgBufLen] = gps1Read;
+          msgBufLen++;
+          gotLF = true;
+          gotDollar = false;
+          break;
+        default:
+          if (gotDollar)
+          {
+            msgBuf[msgBufLen] = gps1Read;
+            msgBufLen++;
+          }
+          break;
+        }
+        if (gotCR && gotLF)
+        {
+          // Serial.print(msgBuf);
+          // Serial.println(msgBufLen);
+          // if (sendUSB)
+          // {
+          //   SerialAOG.write(msgBuf);
+          // } // Send USB GPS data if enabled in user settings
+          if (UDP.isRunning)
+          {
+            UDP.SendUdpAry(msgBuf, msgBufLen, UDP.broadcastIP, UDP.portAgIO_9999);
+          }
+          gotCR = false;
+          gotLF = false;
+          gotDollar = false;
+          memset(msgBuf, 0, 254);
+          msgBufLen = 0;
+          ubxParser.relPosTimer = 0;
+          imuPandaSyncTimer =0;
+          LEDs.toggleTeensyLED();
+          // if (blink)
+          // {
+          //   digitalWrite(GGAReceivedLED, HIGH);
+          // }
+          // else
+          // {
+          //   digitalWrite(GGAReceivedLED, LOW);
+          // }
+          // blink = !blink;
+          // digitalWrite(GPSGREEN_LED, HIGH); // Turn green GPS LED ON
+        }
+      }
       
       #ifdef AIOv50a
         GPS1usage.timeOut();
