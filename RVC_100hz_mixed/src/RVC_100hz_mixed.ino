@@ -45,6 +45,7 @@ void setup()
     LEDs.set(LED_ID::PWR_ETH, PWR_ETH_STATE::NO_ETH);
 
   autosteerSetup();                         // Autosteer.ino
+  CAN_Setup();                              //Start CAN3 for Keya
 
   Serial.println("\r\n\nEnd of setup, waiting for GPS...\r\n"); 
   delay(1);
@@ -53,6 +54,9 @@ void setup()
 
 void loop()
 {
+  // Keya support
+  KeyaBus_Receive();
+  
   checkForPGNs();                           // zPGN.ino, check for AgIO or SerialESP32 Sending PGNs
   PGNusage.timeOut();
 
@@ -159,16 +163,6 @@ void loop()
           ubxParser.relPosTimer = 0;
           imuPandaSyncTimer =0;
           LEDs.toggleTeensyLED();
-          // if (blink)
-          // {
-          //   digitalWrite(GGAReceivedLED, HIGH);
-          // }
-          // else
-          // {
-          //   digitalWrite(GGAReceivedLED, LOW);
-          // }
-          // blink = !blink;
-          // digitalWrite(GPSGREEN_LED, HIGH); // Turn green GPS LED ON
         }
       }
       
