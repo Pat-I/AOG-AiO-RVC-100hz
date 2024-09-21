@@ -54,15 +54,14 @@ void setup()
 
 void loop()
 {
-  // Keya support
-  KeyaBus_Receive();
+  KeyaBus_Receive();                        // KeyaCANBUS.ino, check for new messages from Keya steer motor
   
   checkForPGNs();                           // zPGN.ino, check for AgIO or SerialESP32 Sending PGNs
   PGNusage.timeOut();
 
   autoSteerUpdate();                        // Autosteer.ino, update AS loop every 10ms (100hz) regardless of whether there is a BNO installed
-  udpNMEA();                                // check for NMEA via UDP
-  udpNtrip();                               // check for RTCM via UDP (AgIO NTRIP client)
+  udpNMEA();                                // zPGN.ino, check for NMEA via UDP
+  udpNtrip();                               // zPGN.ino check for RTCM via UDP (AgIO NTRIP client)
     
   if (SerialRTK.available()) {              // Check for RTK Radio RTCM data
     uint8_t rtcmByte = SerialRTK.read();
