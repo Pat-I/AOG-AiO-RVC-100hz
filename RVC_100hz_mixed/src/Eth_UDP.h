@@ -5,30 +5,41 @@
 #include "elapsedMillis.h"
 #include "IPAddress.h"
 #include "Arduino.h"
-#include <NativeEthernet.h>
-#include <NativeEthernetUdp.h>
+//#include <NativeEthernet.h>
+//#include <NativeEthernetUdp.h>
+#include "AsyncUDP_Teensy41.h"
 #include <EEPROM.h>
+
+AsyncUDP GNSS;    // UDP object for incoming NMEA
+AsyncUDP RTCM;    // UDP object for incoming RTCM
+AsyncUDP PGN;     // UDP object for PGNs on port 8888
+AsyncUDP PGN_OGX; // UDP object for PGNs on port 7777 from OGX
+
 
 class Eth_UDP
 {
 public:
 	IPAddress myIP = { 192, 168, 5, 126 };  // 126 default IP for steer module
+  IPAddress myNetmask = {255, 255, 255, 0};
+  IPAddress myGW = {192, 168, 5, 1};
+  IPAddress mydnsServer = {192, 168, 5, 1};
   IPAddress broadcastIP;
   byte mac[6] = { 0x0A, 0x0F, myIP[0], myIP[1], myIP[2], myIP[3] };     // create unique MAC from IP as IP should already be unique
+  IPAddress remoteIP;
 
 
 	// This modules listens to GPS sent on (carry over from Ace)
   // likely not needed but may be convenient for simulating a GPS receiver on the bench using UDP
-	unsigned int portNMEA_2211 = 2211;     // Why 2211? 22XX=GPS then 2211=GPS1 2222=GPS2 2233=RTCM3 corrections easy to remember.
-	EthernetUDP NMEA;                      // UDP object for incoming NMEA
+	unsigned int portGNSS_2211 = 2211;     // Why 2211? 22XX=GPS then 2211=GPS1 2222=GPS2 2233=RTCM3 corrections easy to remember.
+	//EthernetUDP NMEA;                      // UDP object for incoming NMEA
 
 	unsigned int portRTCM_2233 = 2233;     // Why 2211? 22XX=GPS then 2211=GPS1 2222=GPS2 2233=RTCM3 corrections easy to remember.
-	EthernetUDP RTCM;                      // UDP object for incoming RTCM
+	//EthernetUDP RTCM;                      // UDP object for incoming RTCM
   
 	unsigned int portSteer_8888 = 8888;    // UDP port that Modules (like this one) listen to
-	EthernetUDP PGN;                       // UDP object for PGNs on port 8888
+	//EthernetUDP PGN;                       // UDP object for PGNs on port 8888
 	unsigned int portAgIO_9999 = 9999;     // UDP port that AgIO listens to, send data here
-  EthernetUDP PGN_OGX;                   // UDP object for PGNs on port 7777 from OGX
+  //EthernetUDP PGN_OGX;                   // UDP object for PGNs on port 7777 from OGX
 
 	bool isRunning = false;                // set true with successful Eth Start()
   int8_t linkStatus = -1;                // 0 - Unknown, 1 - LinkON, 2 - LinkOFF
@@ -36,7 +47,10 @@ public:
 
   elapsedMillis initTimer = 2000;
 
-  Eth_UDP(void) {                        //constructor
+  void Eth_EEPROM() {                        
+    
+    Serial.println();
+    Serial.println("EEPROM IP Address reading");
     uint16_t eth_ee_read;
     EEPROM.get(60, eth_ee_read);
 
@@ -51,21 +65,31 @@ public:
       mac[2] = myIP[0];
       mac[3] = myIP[1];
       mac[4] = myIP[2];
+      Serial.println("EEPROM IP Address reading step 1");
     }
 
     broadcastIP[0] = myIP[0];
     broadcastIP[1] = myIP[1];
     broadcastIP[2] = myIP[2];
     broadcastIP[3] = 255;                // same subnet as module's IP but use broadcast
+    Serial.println("EEPROM IP Address reading Step 2");
+    Serial.println(broadcastIP);
+    Serial.print("mac: ");
+    for (int i = 0; i < sizeof(mac); i++)
+    {
+      printHex(mac[i]);
+    }
+    Serial.println();
   }
-  ~Eth_UDP(void) {}                      //destructor
 
   bool init()
   {
+    Serial.println("\r\nEth_UDP init");
     if (isRunning) return true;
     //Ethernet.MACAddress(mac);                 // get Teensy's internal MAC, doesn't work reliably
     //Ethernet.begin(mac, 2000, 2000);          // start dhcp connection with 2s timeout, that's enough time to get an eth linkStatus update
     //Ethernet.begin(mac, myIP);                // blocks if unplugged
+    Ethernet.setDHCPEnabled(false);             // Must be set to false if using non-blocking begin() or DHCP client will wipe out static settings in 6 minutes killing the ethernet connection.
     Ethernet.begin(mac, 0);                     // non-blocking method, set IP later
 
     // Check for Ethernet hardware present, always returns "EthernetW5500" (3) for Teensy 4.1 w/Eth
@@ -75,6 +99,9 @@ public:
     }
 
     Ethernet.setLocalIP(myIP);                  // also non-blocking as opposed to Ethernet.begin(mac, myIP) which block with unplugged/unconnected cable
+    Ethernet.setSubnetMask(myNetmask);
+    Ethernet.setGatewayIP(myGW);
+    Ethernet.setDNSServerIP(mydnsServer);
     Serial.print("\r\n\nEthernet connection set with static IP address");
 
     Serial.print("\r\n- Using MAC address: ");
@@ -99,46 +126,128 @@ public:
     Serial.print("\r\n- Sending to AgIO port: ");
     Serial.print(portAgIO_9999);
 
-    if (NMEA.begin(portNMEA_2211)) {
-      Serial.print("\r\n- Ethernet UDP GPS listening on port: ");
-      Serial.print(portNMEA_2211);
+    if (GNSS.listen(portGNSS_2211))
+    {
+      Serial.print("\r\nGNSS UDP Listening on: ");
+      Serial.print(Ethernet.localIP());
+      Serial.print(":");
+      Serial.print(portGNSS_2211);
+
+      // this function is triggered asynchronously(?) by the AsyncUDP library
+      // GNSS.onPacket([&](AsyncUDPPacket packet)
+      //               { gNSS(packet); }); // all the brackets and ending ; are necessary!
     }
 
-    if (RTCM.begin(portRTCM_2233)) {
-      Serial.print("\r\n- Ethernet UDP RTCM listening on port: ");
+    if (RTCM.listen(portRTCM_2233))
+    {
+      Serial.print("\r\nRTCM UDP Listening on: ");
+      Serial.print(Ethernet.localIP());
+      Serial.print(":");
       Serial.print(portRTCM_2233);
+      // this function is triggered asynchronously(?) by the AsyncUDP library
+      RTCM.onPacket([&](AsyncUDPPacket packet)
+                    { nTrip(packet); }); // all the brackets and ending ; are necessary!
     }
 
-    // init UPD Port getting AutoSteer (8888) data from AGIO
-    if (PGN.begin(portSteer_8888)) {
-      Serial << "\r\n- Ethernet UDP listening to port: " << portSteer_8888 << " for AOG PGNs";
+    if (PGN.listen(portSteer_8888))
+    {
+      Serial.print("\r\nRTCM UDP Listening on: ");
+      Serial.print(Ethernet.localIP());
+      Serial.print(":");
+      Serial.print(portSteer_8888);
 
-    }
-
-    if (PGN_OGX.begin(7777)) {
-      Serial << "\r\n- Ethernet UDP listening to port: " << 7777 << " for OGX PGNs";
+      // this function is triggered asynchronously(?) by the AsyncUDP library
+      PGN.onPacket([&](AsyncUDPPacket packet)
+                   { pGN(packet); }); // all the brackets and ending ; are necessary!
     }
 
     isRunning = true;
     return true;
   }
 
+  void pGN(AsyncUDPPacket packet)
+  {
+    // Serial.println("Got PGN packet");
+    // Serial.println(remoteIP);
+    // Serial.println(packet.remotePort());
+    // Serial.println(packet.length());
+    if (packet.remotePort() != 9999 || packet.length() < 5) return; // make sure from AgIO
+    if ( pgnRingBuffer.isFull() ) {
+      Serial.println("PGN Ring Buffer Full"); return;
+    }
+    remoteIP = packet.remoteIP();
+    //uint16_t size = packet.length();
+    for (int i = 0; i < packet.length(); i++) {
+      Serial.println(packet.data()[i], HEX);
+      pgnRingBuffer.push(packet.data()[i]);
+    }
+    //pgnRingBuffer.push(0xFF);
+  }
+
+  void nTrip(AsyncUDPPacket packet)
+  {
+    // Serial.println("Got RTCM packet");
+    // Serial.println(packet.remotePort());
+    // Serial.println(packet.length());
+    if (packet.remotePort() != 9999 || packet.length() < 5) return; // make sure from AgIO
+    if ( rtcmRingBuffer.isFull() ) {
+       Serial.println("PGN Ring Buffer Full"); return;
+    }
+    uint16_t size = packet.length();
+    for (int i = 0; i < size; i++) {
+      rtcmRingBuffer.push(packet.data()[i]);
+    }
+    rtcmRingBuffer.push(0xFF);
+    // SerialGPS->write(NTRIPData, size - 4);
+    // SerialGPS->write(packet.data(), packet.length());
+    // LEDs.queueBlueFlash(LED_ID::GPS);
+  }
+
+  void gNSS(AsyncUDPPacket packet)
+  {
+    //Serial.println("Got udpGPS packet");
+    if (packet.remotePort() != 9999 || packet.length() < 5) return; // make sure from AgIO
+    if ( gnssRingBuffer.isFull() ) {
+      Serial.println("PGN Ring Buffer Full"); return;
+    }
+    uint16_t size = packet.length();
+    for (int i = 4; i < size; i++) {
+      gnssRingBuffer.push(packet.data()[i]);
+    }
+    gnssRingBuffer.push(0xFF);
+  }
+
   void SendUdpByte(uint8_t* _data, uint8_t _length, IPAddress _ip, uint16_t _port) {
-    PGN.beginPacket(_ip, _port);
-    PGN.write(_data, _length);
-    PGN.endPacket();
+    // PGN.beginPacket(_ip, _port);
+    // PGN.write(_data, _length);
+    // PGN.endPacket();
+    PGN.writeTo(_data, _length, _ip, _port);
   }
 
   void SendUdpChar(char* _charBuf, uint8_t _length, IPAddress _ip, uint16_t _port) {
-    PGN.beginPacket(_ip, _port);
-    PGN.write(_charBuf, _length);
-    PGN.endPacket();
+    // PGN.beginPacket(_ip, _port);
+    // PGN.write(_charBuf, _length);
+    // PGN.endPacket();
+    uint8_t tmpBuf[_length];
+    uint8_t *tmpBufptr = tmpBuf;
+    for (int i = 0; i < _length; i++)
+    {
+      tmpBuf[i] = _charBuf[i];
+    }
+    PGN.writeTo(tmpBufptr, _length, _ip, _port);
   }
 
   void SendUdpAry(char _data[], uint8_t _length, IPAddress _ip, uint16_t _port) {
-    PGN.beginPacket(_ip, _port);
-    PGN.write(_data, _length);
-    PGN.endPacket();
+    // PGN.beginPacket(_ip, _port);
+    // PGN.write(_data, _length);
+    // PGN.endPacket();
+    uint8_t tmpBuf[_length];
+    uint8_t *tmpBufptr = tmpBuf;
+    for (int i = 0; i < _length; i++)
+    {
+      tmpBuf[i] = _data[i];
+    }
+    PGN.writeTo(tmpBufptr, _length, _ip, _port);
   } 
 
   // "raw" method, bypasses limit checks in firmware but AOG should still have limits
@@ -162,7 +271,7 @@ public:
     _seconds = min(10, _seconds);
     header[6] = _seconds;
 
-    char ForTheWire[_len + 8];
+    uint8_t ForTheWire[_len + 8];
     //Serial.print("\r\n");
     for (byte i = 0; i < 7; i++) {
       ForTheWire[i] = header[i];
@@ -185,9 +294,10 @@ public:
     }
     Serial.print("\"");
 
-    PGN.beginPacket(dip, dport);
-    PGN.write(ForTheWire, sizeof(ForTheWire)); // +1 to include null terminator
-    PGN.endPacket();
+    // PGN.beginPacket(dip, dport);
+    // PGN.write(ForTheWire, sizeof(ForTheWire)); // +1 to include null terminator
+    // PGN.endPacket();
+    PGN.writeTo(ForTheWire, sizeof(ForTheWire), dip, dport);
 
   }
 
@@ -198,6 +308,13 @@ public:
     EEPROM.put(64, myIP[2]);
   }
 
+  void printHex(uint8_t num)
+  {
+    char hexCar[2];
+
+    sprintf(hexCar, "%02X", num);
+    Serial.print(hexCar);
+  }
 
 };
 #endif
