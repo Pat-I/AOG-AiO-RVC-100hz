@@ -6,6 +6,7 @@
 
 */
 #include <Arduino.h>
+#include <AsyncUDP_Teensy41.h>
 #define UDP_MAX_PACKET_SIZE 40         // Buffer size For Receiving UDP PGN Data
 //uint32_t pgn254Time, pgn254MaxDelay, pgn254AveDelay, pgn254MinDelay = 99999;
 
@@ -62,36 +63,19 @@ bool checkForPGNs()
   pgnCheckTime = millisNow + 1;     // allow check every ms
 
   uint8_t udpData[UDP_MAX_PACKET_SIZE];  // UDP_TX_PACKET_MAX_SIZE is not large enough for machine pin settings PGN
-  byte value;
-  byte discard;
   uint16_t len = 0;
 
-  if ( pgnRingBuffer.isEmpty() ) {Serial.println("Buffer empty"); return false;} // Check for data in the ring buffer
+  if ( PGN_buf->isEmpty(PGN_buf) ) {return false;}
+  struct pgnData pgnUDP;
+  PGN_buf->pull(PGN_buf, &pgnUDP);
+  //Serial.print("PGN Buf level:" );
+  //Serial.println(PGN_buf->numElements(PGN_buf));
+  len = pgnUDP.length;
+  for ( int i = 0; i < len; i++ ) {
+    udpData[i] = pgnUDP.data[i];
+    //Serial.println(udpData[i], HEX);
+  }
   
-  if ( pgnRingBuffer.lockedPeek(value,0)) {          // Check if it is the first byte of the PGN header. 
-    if (value != 0x80) {
-      pgnRingBuffer.pop(discard);
-      Serial.println("Discarded");
-      return false;
-    }
-  }
-  Serial.println("Found first byte of PGN header");
-  if ( pgnRingBuffer.lockedPeek(value,1)) {          // Check if it is the second byte of the PGN header. 
-    if (value != 0x81) {
-      pgnRingBuffer.pop(discard);
-      return false;
-    }
-  }
-  Serial.println("Found second byte of PGN header");
-  pgnRingBuffer.lockedPeek(value,4);
-  len = int(value) + 6;
-  Serial.println(len);
-  for (int i = 0; i <= len - 1; i++) {
-    pgnRingBuffer.lockedPop(value);
-    Serial.println(value, HEX);
-    //udpData[i] = value;
-  }
-
   if (udpData[0] != 0x80 || udpData[1] != 0x81 || udpData[2] != 0x7F) return;  // verify first 3 PGN header bytes
   bool pgnMatched = false;
 
@@ -531,7 +515,8 @@ bool checkForPGNs()
 
 
 
-  if (!pgnMatched) printPgnAnnoucement(udpData[3], (char*)"Unprocessed PGN", len);
+  //if (!pgnMatched) printPgnAnnoucement(udpData[3], (char*)"Unprocessed PGN", len);
+  if (!pgnMatched) return false;
 }
 
 void printPgnAnnoucement(uint8_t _pgnNum, char* _pgnName, uint8_t _len)
@@ -555,11 +540,11 @@ void udpNMEA() {
   byte value;
   int i = 0;
   uint16_t len = 0;
-  while ( gnssRingBuffer.pop(value) ) {
-    if ( value == 0xFF || i >= 256 ) break;
-    nmeaParser << value;
-    len = i;
-  }
+  // while ( gnssRingBuffer.pop(value) ) {
+  //   if ( value == 0xFF || i >= 256 ) break;
+  //   nmeaParser << value;
+  //   len = i;
+  // }
 }
 
 /*
@@ -570,17 +555,22 @@ void udpNtrip() {
   
   if (UDP.isRunning) { // When ethernet is not running, return directly. parsePacket() will block when we don't
 
-    byte value;
-    int i = 0;
     uint16_t len = 0;
     byte RTCM_packetBuffer[256];
-
-    while ( rtcmRingBuffer.pop(value) ) {
-      if ( value == 0xFF || i >= 256 ) break;
-      RTCM_packetBuffer[i] = value;
+    
+    if ( NTRIP_buf->isEmpty(NTRIP_buf) ) {return false;}
+    struct ntripData ntripUDP;
+    NTRIP_buf->pull(NTRIP_buf, &ntripUDP);
+    //Serial.print("NTRIP Buf level:" );
+    //Serial.println(NTRIP_buf->numElements(NTRIP_buf));
+    len = ntripUDP.length;
+    for ( int i = 0; i < ntripUDP.length; i++ ) {
+      RTCM_packetBuffer[i] = ntripUDP.data[i];
+      //Serial.print("NTRIP data: ");
+      //Serial.println(RTCM_packetBuffer[i], HEX);
     }
-    if (!USB1DTR) SerialGPS1.write(RTCM_packetBuffer, len);
-    if (!USB2DTR) SerialGPS2.write(RTCM_packetBuffer, len);
+    if (!USB1DTR) SerialGPS1.write(RTCM_packetBuffer, sizeof(RTCM_packetBuffer));
+    if (!USB2DTR) SerialGPS2.write(RTCM_packetBuffer, sizeof(RTCM_packetBuffer));
     LEDs.queueBlueFlash(LED_ID::GPS);
   }
   NTRIPusage.timeOut();

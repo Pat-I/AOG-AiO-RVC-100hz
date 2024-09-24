@@ -167,54 +167,45 @@ public:
 
   void pGN(AsyncUDPPacket packet)
   {
-    // Serial.println("Got PGN packet");
-    // Serial.println(remoteIP);
-    // Serial.println(packet.remotePort());
-    // Serial.println(packet.length());
     if (packet.remotePort() != 9999 || packet.length() < 5) return; // make sure from AgIO
-    if ( pgnRingBuffer.isFull() ) {
-      Serial.println("PGN Ring Buffer Full"); return;
-    }
-    remoteIP = packet.remoteIP();
-    //uint16_t size = packet.length();
+    struct pgnData udpPGN;
+    memset( &udpPGN, 0, sizeof(pgnData));
+    udpPGN.remoteIP = packet.remoteIP();
+    udpPGN.length = packet.length();
+
     for (int i = 0; i < packet.length(); i++) {
-      Serial.println(packet.data()[i], HEX);
-      pgnRingBuffer.push(packet.data()[i]);
-    }
-    //pgnRingBuffer.push(0xFF);
+      udpPGN.data[i] = packet.data()[i];
+      //Serial.print("PGN_Data: ");
+      //Serial.println(udpPGN.data[i], HEX);
+    } 
+    if (PGN_buf->add(PGN_buf,&udpPGN) == -1) Serial.println("PGN ring buffer is full!");
   }
 
   void nTrip(AsyncUDPPacket packet)
   {
-    // Serial.println("Got RTCM packet");
-    // Serial.println(packet.remotePort());
-    // Serial.println(packet.length());
     if (packet.remotePort() != 9999 || packet.length() < 5) return; // make sure from AgIO
-    if ( rtcmRingBuffer.isFull() ) {
-       Serial.println("PGN Ring Buffer Full"); return;
+    struct ntripData udpNtrip;
+    memset ( &udpNtrip, 0, sizeof(ntripData));
+    udpNtrip.length = packet.length();
+    for (int i =0; i < packet.length(); i++){
+      udpNtrip.data[i] = packet.data()[i];
     }
-    uint16_t size = packet.length();
-    for (int i = 0; i < size; i++) {
-      rtcmRingBuffer.push(packet.data()[i]);
-    }
-    rtcmRingBuffer.push(0xFF);
-    // SerialGPS->write(NTRIPData, size - 4);
-    // SerialGPS->write(packet.data(), packet.length());
-    // LEDs.queueBlueFlash(LED_ID::GPS);
+
+    if (NTRIP_buf->add(NTRIP_buf,&udpNtrip) == -1) Serial.println("NTRIP ring buffer is full!");
   }
 
   void gNSS(AsyncUDPPacket packet)
   {
     //Serial.println("Got udpGPS packet");
     if (packet.remotePort() != 9999 || packet.length() < 5) return; // make sure from AgIO
-    if ( gnssRingBuffer.isFull() ) {
-      Serial.println("PGN Ring Buffer Full"); return;
-    }
-    uint16_t size = packet.length();
-    for (int i = 4; i < size; i++) {
-      gnssRingBuffer.push(packet.data()[i]);
-    }
-    gnssRingBuffer.push(0xFF);
+    // if ( gnssRingBuffer.isFull() ) {
+    //   Serial.println("PGN Ring Buffer Full"); return;
+    // }
+    // uint16_t size = packet.length();
+    // for (int i = 4; i < size; i++) {
+    //   gnssRingBuffer.push(packet.data()[i]);
+    // }
+    // gnssRingBuffer.push(0xFF);
   }
 
   void SendUdpByte(uint8_t* _data, uint8_t _length, IPAddress _ip, uint16_t _port) {
