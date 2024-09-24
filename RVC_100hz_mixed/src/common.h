@@ -61,14 +61,6 @@ const uint8_t ANALOG_TRIG_HYST = 10;
 #include "BNO_RVC.h"
 BNO_RVC BNO;                                            // Roomba Vac mode for BNO085
 
-// #include "RingBuf.h"
-// const uint16_t sizeRingBuffer = 512;
-
-// RingBuf<byte, sizeRingBuffer> gnssRingBuffer;     // Ring buffer for incoming NMEA
-// RingBuf<byte, sizeRingBuffer> rtcmRingBuffer;     // Ring buffer for incoming RTCM
-// RingBuf<byte, sizeRingBuffer> pgnRingBuffer;      // Rinf buffer for PGNs on port 8888
-// RingBuf<byte, sizeRingBuffer> pgn_ogxRingBuffer;  // Ringt for PGNs on port 7777 from OGX
-
 #include <RingBuf.h>
 struct pgnData
 {
