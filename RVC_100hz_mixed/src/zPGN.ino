@@ -5,13 +5,14 @@
   a lot of this code taken from old AIO I2C firmware
 
 */
-
+#include <Arduino.h>
+#include <AsyncUDP_Teensy41.h>
 #define UDP_MAX_PACKET_SIZE 40         // Buffer size For Receiving UDP PGN Data
 //uint32_t pgn254Time, pgn254MaxDelay, pgn254AveDelay, pgn254MinDelay = 99999;
 
-void checkForPGNs()
+bool checkForPGNs()
 {
-  if (!UDP.isRunning) return;                           // When ethernet is not running, return directly. parsePacket() will block with no ethernet
+  if (!UDP.isRunning) return false;                           // When ethernet is not running, return directly. parsePacket() will block with no ethernet
 
   #ifdef AIOv50a
   ESP32usage.timeIn();
@@ -58,15 +59,23 @@ void checkForPGNs()
   static uint32_t pgnCheckTime;
   uint32_t millisNow = millis();
   if (millisNow < pgnCheckTime) return;   // only need to check for new PGN data every ms, not 100s of times per ms
-  //Serial.print((String)"\r\n" + millisNow + " PGN check " + pgnCheckTime);
+  // Serial.print((String)"\r\n" + millisNow + " PGN check " + pgnCheckTime);
   pgnCheckTime = millisNow + 1;     // allow check every ms
 
-  uint16_t len = UDP.PGN.parsePacket();                 //get data from AgIO sent by 9999 to this 8888
-  if (UDP.PGN.remotePort() != 9999 || len < 5) return;  //make sure from AgIO
-
   uint8_t udpData[UDP_MAX_PACKET_SIZE];  // UDP_TX_PACKET_MAX_SIZE is not large enough for machine pin settings PGN
-  UDP.PGN.read(udpData, UDP_MAX_PACKET_SIZE);
+  uint16_t len = 0;
 
+  if ( PGN_buf->isEmpty(PGN_buf) ) {return false;}
+  struct pgnData pgnUDP;
+  PGN_buf->pull(PGN_buf, &pgnUDP);
+  //Serial.print("PGN Buf level:" );
+  //Serial.println(PGN_buf->numElements(PGN_buf));
+  len = pgnUDP.length;
+  for ( int i = 0; i < len; i++ ) {
+    udpData[i] = pgnUDP.data[i];
+    //Serial.println(udpData[i], HEX);
+  }
+  
   if (udpData[0] != 0x80 || udpData[1] != 0x81 || udpData[2] != 0x7F) return;  // verify first 3 PGN header bytes
   bool pgnMatched = false;
 
@@ -184,7 +193,7 @@ void checkForPGNs()
   {
     printPgnAnnoucement(udpData[3], (char*)"Scan Request", len);
     if (udpData[4] == 3 && udpData[5] == 202 && udpData[6] == 202) {
-      IPAddress rem_ip = UDP.PGN.remoteIP();
+      IPAddress rem_ip = UDP.remoteIP;
       IPAddress ipDest = { 255, 255, 255, 255 };
 
       uint8_t scanReplySteer[] = { 128, 129, 126, 203, 7,
@@ -506,7 +515,8 @@ void checkForPGNs()
 
 
 
-  if (!pgnMatched) printPgnAnnoucement(udpData[3], (char*)"Unprocessed PGN", len);
+  //if (!pgnMatched) printPgnAnnoucement(udpData[3], (char*)"Unprocessed PGN", len);
+  if (!pgnMatched) return false;
 }
 
 void printPgnAnnoucement(uint8_t _pgnNum, char* _pgnName, uint8_t _len)
@@ -527,14 +537,14 @@ void printPgnAnnoucement(uint8_t _pgnNum, char* _pgnName, uint8_t _len)
 void udpNMEA() {
   if (!UDP.isRunning) return;  // When ethernet is not running, return directly. parsePacket() will block when we don't
 
-  int packetLength = UDP.NMEA.parsePacket();
-  if (packetLength > 0) {
-    char NMEA_packetBuffer[256];       // buffer for receiving NMEA sentence
-    UDP.NMEA.read(NMEA_packetBuffer, packetLength);
-    for (int i = 0; i < packetLength; i++) {
-      nmeaParser << NMEA_packetBuffer[i];
-    }
-  }
+  byte value;
+  int i = 0;
+  uint16_t len = 0;
+  // while ( gnssRingBuffer.pop(value) ) {
+  //   if ( value == 0xFF || i >= 256 ) break;
+  //   nmeaParser << value;
+  //   len = i;
+  // }
 }
 
 /*
@@ -542,31 +552,26 @@ void udpNMEA() {
 */
 void udpNtrip() {
   NTRIPusage.timeIn();
-  static uint32_t ntripCheckTime;//, ntripUpdateTime;
-  // When ethernet is not running, return directly. parsePacket() will block when we don't
-  if (UDP.isRunning) {
-    if (millis() > ntripCheckTime) {  // limit update rate to save cpu time
+  
+  if (UDP.isRunning) { // When ethernet is not running, return directly. parsePacket() will block when we don't
+
+    uint16_t len = 0;
+    byte RTCM_packetBuffer[256];
     
-      unsigned int packetLength = UDP.RTCM.parsePacket(); // this uses most of the cpu time in this function unless SerialGPS1 has low baud
-      ntripCheckTime = millis();                          // make sure we wait at least 1ms before checking again to avoid excessive cpu usage
-
-      if (packetLength > 0) {
-        //Serial.print("\r\nNTRIP "); Serial.print(millis() - ntripUpdateTime); Serial.print(" len:"); Serial.print(packetLength);
-        char RTCM_packetBuffer[256];
-        UDP.RTCM.read(RTCM_packetBuffer, sizeof(RTCM_packetBuffer));
-        if (!USB1DTR) SerialGPS1.write(RTCM_packetBuffer, sizeof(RTCM_packetBuffer));
-        if (!USB2DTR) SerialGPS2.write(RTCM_packetBuffer, sizeof(RTCM_packetBuffer));
-        LEDs.queueBlueFlash(LED_ID::GPS);
-
-        // up to 256 byte packets are sent from AgIO and most NTRIP RTCM updates are larger so there's usually two packets per update
-        // this doesn't seem necessary, the above 1ms update limit already reduces cpu usage enough
-        //if (packetLength < buffer_size){    // if buffer was not full, then end of NTRIP packet, can wait 800ms until we start checking again
-          //ntripCheckTime = millis() + 800;  // most base stations send updates every 1000ms
-        //}
-          
-        //ntripUpdateTime = millis();   // only used in Serial debug above, AgIO always delays sequential ntrip packets by about 52-70ms
-      }
+    if ( NTRIP_buf->isEmpty(NTRIP_buf) ) {return false;}
+    struct ntripData ntripUDP;
+    NTRIP_buf->pull(NTRIP_buf, &ntripUDP);
+    //Serial.print("NTRIP Buf level:" );
+    //Serial.println(NTRIP_buf->numElements(NTRIP_buf));
+    len = ntripUDP.length;
+    for ( int i = 0; i < ntripUDP.length; i++ ) {
+      RTCM_packetBuffer[i] = ntripUDP.data[i];
+      //Serial.print("NTRIP data: ");
+      //Serial.println(RTCM_packetBuffer[i], HEX);
     }
+    if (!USB1DTR) SerialGPS1.write(RTCM_packetBuffer, sizeof(RTCM_packetBuffer));
+    if (!USB2DTR) SerialGPS2.write(RTCM_packetBuffer, sizeof(RTCM_packetBuffer));
+    LEDs.queueBlueFlash(LED_ID::GPS);
   }
   NTRIPusage.timeOut();
 }

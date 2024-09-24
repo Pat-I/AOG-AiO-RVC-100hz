@@ -3,6 +3,8 @@
 #include <stdint.h>
 #include <Streaming.h>
 #include "zADS1115.h"
+#include "IPAddress.h"
+#include "AsyncUDP_Teensy41.h"
 
 #include "LEDS.h"
 LEDS LEDs = LEDS(1000, 255, 64, 127);   // 1000ms RGB update, 255/64/127 RGB brightness balance levels for v5.0a
@@ -58,6 +60,25 @@ const uint8_t ANALOG_TRIG_HYST = 10;
 
 #include "BNO_RVC.h"
 BNO_RVC BNO;                                            // Roomba Vac mode for BNO085
+
+#include <RingBuf.h>
+struct pgnData
+{
+  IPAddress remoteIP;
+  byte data[40];
+  uint16_t length;
+};
+struct ntripData
+{
+  byte data[256];
+  uint16_t length;
+};
+
+RingBuf *PGN_buf = RingBuf_new(sizeof(struct pgnData), 10);
+RingBuf *NTRIP_buf = RingBuf_new(sizeof(struct ntripData), 10);
+
+#include "QNEthernet.h"
+using namespace qindesign::network;
 
 #include "Eth_UDP.h"
 Eth_UDP UDP = Eth_UDP();
