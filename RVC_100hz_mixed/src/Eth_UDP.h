@@ -31,15 +31,12 @@ public:
 	// This modules listens to GPS sent on (carry over from Ace)
   // likely not needed but may be convenient for simulating a GPS receiver on the bench using UDP
 	unsigned int portGNSS_2211 = 2211;     // Why 2211? 22XX=GPS then 2211=GPS1 2222=GPS2 2233=RTCM3 corrections easy to remember.
-	//EthernetUDP NMEA;                      // UDP object for incoming NMEA
 
 	unsigned int portRTCM_2233 = 2233;     // Why 2211? 22XX=GPS then 2211=GPS1 2222=GPS2 2233=RTCM3 corrections easy to remember.
-	//EthernetUDP RTCM;                      // UDP object for incoming RTCM
-  
+
 	unsigned int portSteer_8888 = 8888;    // UDP port that Modules (like this one) listen to
-	//EthernetUDP PGN;                       // UDP object for PGNs on port 8888
+
 	unsigned int portAgIO_9999 = 9999;     // UDP port that AgIO listens to, send data here
-  //EthernetUDP PGN_OGX;                   // UDP object for PGNs on port 7777 from OGX
 
 	bool isRunning = false;                // set true with successful Eth Start()
   int8_t linkStatus = -1;                // 0 - Unknown, 1 - LinkON, 2 - LinkOFF
@@ -99,9 +96,9 @@ public:
     }
 
     Ethernet.setLocalIP(myIP);                  // also non-blocking as opposed to Ethernet.begin(mac, myIP) which block with unplugged/unconnected cable
-    Ethernet.setSubnetMask(myNetmask);
-    Ethernet.setGatewayIP(myGW);
-    Ethernet.setDNSServerIP(mydnsServer);
+    Ethernet.setSubnetMask(myNetmask);          //QNEthernet requires this to be set
+    Ethernet.setGatewayIP(myGW);                //QNEthernet requires this to be set
+    Ethernet.setDNSServerIP(mydnsServer);       //QNEthernet requires this to be set
     Serial.print("\r\n\nEthernet connection set with static IP address");
 
     Serial.print("\r\n- Using MAC address: ");
@@ -196,7 +193,6 @@ public:
 
   void gNSS(AsyncUDPPacket packet)
   {
-    //Serial.println("Got udpGPS packet");
     if (packet.remotePort() != 9999 || packet.length() < 5) return; // make sure from AgIO
     // if ( gnssRingBuffer.isFull() ) {
     //   Serial.println("PGN Ring Buffer Full"); return;
@@ -216,9 +212,7 @@ public:
   }
 
   void SendUdpChar(char* _charBuf, uint8_t _length, IPAddress _ip, uint16_t _port) {
-    // PGN.beginPacket(_ip, _port);
-    // PGN.write(_charBuf, _length);
-    // PGN.endPacket();
+
     uint8_t tmpBuf[_length];
     uint8_t *tmpBufptr = tmpBuf;
     for (int i = 0; i < _length; i++)
@@ -229,9 +223,7 @@ public:
   }
 
   void SendUdpAry(char _data[], uint8_t _length, IPAddress _ip, uint16_t _port) {
-    // PGN.beginPacket(_ip, _port);
-    // PGN.write(_data, _length);
-    // PGN.endPacket();
+
     uint8_t tmpBuf[_length];
     uint8_t *tmpBufptr = tmpBuf;
     for (int i = 0; i < _length; i++)
@@ -263,15 +255,13 @@ public:
     header[6] = _seconds;
 
     uint8_t ForTheWire[_len + 8];
-    //Serial.print("\r\n");
+
     for (byte i = 0; i < 7; i++) {
       ForTheWire[i] = header[i];
-      //Serial.print(ForTheWire[i], DEC); Serial.print(" ");
     }
 
     for (byte i = 0; i < _len; i++) {
       ForTheWire[i + 7] = _msg[i];
-      //Serial.print(ForTheWire[i+7]);
     }
 
     ForTheWire[_len + 7] = 0;
@@ -285,9 +275,6 @@ public:
     }
     Serial.print("\"");
 
-    // PGN.beginPacket(dip, dport);
-    // PGN.write(ForTheWire, sizeof(ForTheWire)); // +1 to include null terminator
-    // PGN.endPacket();
     PGN.writeTo(ForTheWire, sizeof(ForTheWire), dip, dport);
 
   }

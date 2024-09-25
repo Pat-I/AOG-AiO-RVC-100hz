@@ -540,11 +540,6 @@ void udpNMEA() {
   byte value;
   int i = 0;
   uint16_t len = 0;
-  // while ( gnssRingBuffer.pop(value) ) {
-  //   if ( value == 0xFF || i >= 256 ) break;
-  //   nmeaParser << value;
-  //   len = i;
-  // }
 }
 
 /*

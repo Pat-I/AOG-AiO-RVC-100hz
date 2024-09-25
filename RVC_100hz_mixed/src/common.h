@@ -4,7 +4,6 @@
 #include <Streaming.h>
 #include "zADS1115.h"
 #include "IPAddress.h"
-#include "AsyncUDP_Teensy41.h"
 
 #include "LEDS.h"
 LEDS LEDs = LEDS(1000, 255, 64, 127);   // 1000ms RGB update, 255/64/127 RGB brightness balance levels for v5.0a
