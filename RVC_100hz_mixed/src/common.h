@@ -111,8 +111,8 @@ UBX_Parser ubxParser;
 FUSE_Imu fuseImu;
 
 #include "SimpleKalmanFilter.h"
-SimpleKalmanFilter rtkFloat(0.5, 0.5, 0.1);
-SimpleKalmanFilter dGPS(1, 1, 0.05);
+SimpleKalmanFilter rtkFloat(0.5, 0.5, 0.1); // High gain filter. Last number closer to 1 = more gain. More responsive to changes but can get jumpy if set too high.
+SimpleKalmanFilter dGPS(1, 1, 0.05); // Low gain filter. Last number closer to 0 = less gain. less responsive to changes but smooths out noise.
 
 // Keya CAN bus
 #include <FlexCAN_T4.h>
