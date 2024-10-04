@@ -270,10 +270,23 @@ void HPR_Handler()
   }
   else
   {
-    if (HPR.solQuality == 4)
+    if (HPR.solQuality == 4) //Send roll as is since we have RTK Fixed solution
     {
       ubxParser.ubxData.baseRelRoll = atof(HPR.roll);
     }
+
+    else if (HPR.solQuality == 5) //Fast adapting Kalman filter
+    {
+      float tmpRoll = atof(HPR.roll);
+      ubxParser.ubxData.baseRelRoll = rtkFloat.updateEstimate(tmpRoll);
+    }
+
+    else if (HPR.solQuality == 2) //Slower adapting Kalman filter
+    {
+      float tmpRoll = atof(HPR.roll);
+      ubxParser.ubxData.baseRelRoll = dGPS.updateEstimate(tmpRoll);
+    }
+
     else
     {
       ubxParser.ubxData.baseRelRoll *= 0.9; // "level off" dual roll
