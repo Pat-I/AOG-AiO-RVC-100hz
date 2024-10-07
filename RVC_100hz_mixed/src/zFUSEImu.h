@@ -83,7 +83,8 @@ public:
 
         // Calculate the diffrence between dual and imu roll
         float imuRoll;
-        imuRoll = fuseData.rollImu * 0.1;
+        //imuRoll = fuseData.rollImu * 0.1;
+        imuRoll = fuseData.rollImu;
         fuseData.rollDelta = fuseData.rollDual - imuRoll;
         fuseData.rollDeltaSmooth = (fuseData.rollDeltaSmooth * 0.7) + (fuseData.rollDelta * 0.3);
 
@@ -108,6 +109,8 @@ public:
         Serial.println("--Output Data--");
         Serial.print("imuGPS_Offset: ");
         Serial.println(fuseData.imuGPS_Offset);
+        Serial.print("rollDelta: ");
+        Serial.println(fuseData.rollDelta);
         Serial.print("rollDeltaSmooth: ");
         Serial.println(fuseData.rollDeltaSmooth);
         Serial.print("imuCorrected: ");
