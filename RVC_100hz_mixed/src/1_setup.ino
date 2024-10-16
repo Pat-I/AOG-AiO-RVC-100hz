@@ -37,6 +37,7 @@ void serialSetup()
     SerialESP32.addMemoryForRead(ESP32rxbuffer, sizeof(ESP32rxbuffer));
     SerialESP32.addMemoryForWrite(ESP32txbuffer, sizeof(ESP32txbuffer));
   #endif
+  WT901.attach(SerialRS232);
 }
 
 void parserSetup()

@@ -15,6 +15,12 @@ extern "C"
 #include "FlashTxx.h" // TLC/T3x/T4x/TMM flash primitives
 }
 
+// #include <REG.h>
+// #include <wit_c_sdk.h>
+#include "WT901.h"
+CWT901 WT901;
+elapsedMillis wtTimer;
+u_int8_t wtInterval = 10;
 
 #include "LEDS.h"
 LEDS LEDs = LEDS(1000, 255, 64, 127);   // 1000ms RGB update, 255/64/127 RGB brightness balance levels for v5.0a

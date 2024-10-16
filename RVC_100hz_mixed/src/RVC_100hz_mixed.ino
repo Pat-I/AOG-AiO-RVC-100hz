@@ -86,10 +86,13 @@ void loop()
   }
 
   #ifdef AIOv50a
+  #define ACC_UPDATE		0x01
+  #define GYRO_UPDATE		0x02
+  #define ANGLE_UPDATE	0x04
+  #define MAG_UPDATE		0x08
+  #define READ_UPDATE		0x80
     RS232usage.timeIn();
-    if (SerialRS232.available()) {           // Check for RS232 data
-      Serial.write(SerialRS232.read());      // just print to USB for testing
-    }
+
     RS232usage.timeOut();
   #endif
 
@@ -183,7 +186,7 @@ void loop()
       #ifdef AIOv50a
         GPS1usage.timeOut();
         RS232usage.timeIn();
-        SerialRS232.write(gps1Read);
+        //SerialRS232.write(gps1Read);
         RS232usage.timeOut();
       #endif
     }
@@ -399,6 +402,39 @@ void loop()
   testCounter++;
   LOOPusage.timeOut();
 
+  if (wtTimer >= wtInterval)
+  {
+    wtTimer = wtTimer - wtInterval;
+
+    WT901.receiveSerialData();
+        
+    Serial.print("Acc:");
+    Serial.print(WT901.getAccX());
+    Serial.print(" ");
+    Serial.print(WT901.getAccY());
+    Serial.print(" ");
+    Serial.print(WT901.getAccZ());
+    Serial.print("\n");
+
+    
+    Serial.print("Gyro:");
+    Serial.print(WT901.getGyroX());
+    Serial.print(" ");
+    Serial.print(WT901.getGyroY());
+    Serial.print(" ");
+    Serial.print(WT901.getGyroZ());
+    Serial.print("\n");
+    
+    Serial.print("Angle:");
+    Serial.print(WT901.getRoll());
+    Serial.print(" ");
+    Serial.print(WT901.getPitch());
+    Serial.print(" ");
+    Serial.print(WT901.getYaw());
+    Serial.print("\n");
+
+    Serial.println("");
+  }
 } // end of loop()
 
 
