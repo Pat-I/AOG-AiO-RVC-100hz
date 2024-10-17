@@ -99,20 +99,20 @@ int16_t CWT901::getAccRawZ()
 	return WT901_data.acc.z;
 }
 
-int16_t CWT901::getGyroRawX()
-{
-	return WT901_data.gyro.x;
-}
+// int16_t CWT901::getGyroRawX()
+// {
+// 	return WT901_data.gyro.x;
+// }
 
-int16_t CWT901::getGyroRawY()
-{
-	return WT901_data.gyro.y;
-}
+// int16_t CWT901::getGyroRawY()
+// {
+// 	return WT901_data.gyro.y;
+// }
 
-int16_t CWT901::getGyroRawZ()
-{
-	return WT901_data.gyro.z;
-}
+// int16_t CWT901::getGyroRawZ()
+// {
+// 	return WT901_data.gyro.z;
+// }
 
 double CWT901::getRoll()
 {
