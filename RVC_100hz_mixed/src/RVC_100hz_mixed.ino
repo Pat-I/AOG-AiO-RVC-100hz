@@ -408,32 +408,37 @@ void loop()
 
     WT901.receiveSerialData();
         
-    Serial.print("Acc:");
-    Serial.print(WT901.getAccX());
-    Serial.print(" ");
-    Serial.print(WT901.getAccY());
-    Serial.print(" ");
-    Serial.print(WT901.getAccZ());
-    Serial.print("\n");
+    // Serial.print("Acc:");
+    // Serial.print(WT901.getAccX());
+    // Serial.print(" ");
+    // Serial.print(WT901.getAccY());
+    // Serial.print(" ");
+    // Serial.print(WT901.getAccZ());
+    // Serial.print("\n");
 
     
-    Serial.print("Gyro:");
-    Serial.print(WT901.getGyroX());
-    Serial.print(" ");
-    Serial.print(WT901.getGyroY());
-    Serial.print(" ");
-    Serial.print(WT901.getGyroZ());
-    Serial.print("\n");
+    // Serial.print("Gyro:");
+    // Serial.print(WT901.getGyroX());
+    // Serial.print(" ");
+    // Serial.print(WT901.getGyroY());
+    // Serial.print(" ");
+    // Serial.print(WT901.getGyroZ());
+    // Serial.print("\n");
     
-    Serial.print("Angle:");
-    Serial.print(WT901.getRoll());
-    Serial.print(" ");
-    Serial.print(WT901.getPitch());
-    Serial.print(" ");
-    Serial.print(WT901.getYaw());
-    Serial.print("\n");
+    // Serial.print("Angle:");
+    // Serial.print(WT901.getRoll());
+    // Serial.print(" ");
+    // Serial.print(WT901.getPitch());
+    // Serial.print(" ");
+    // Serial.print(WT901.getYaw());
+    // Serial.print("\n");
 
-    Serial.println("");
+    // Serial.println("");
+
+  Serial.print(WT901.getAccX());Serial.print(",");Serial.print(WT901.getAccY());Serial.print(",");Serial.print(WT901.getAccZ());Serial.print(",");
+  Serial.print(WT901.getGyroX());Serial.print(",");Serial.print(WT901.getGyroY());Serial.print(",");Serial.print(WT901.getGyroZ());Serial.print(",");
+  Serial.print(WT901.getRoll());Serial.print(",");Serial.print(WT901.getPitch());Serial.print(",");Serial.print(WT901.getYaw());Serial.print("\n");
+
   }
 } // end of loop()
 
