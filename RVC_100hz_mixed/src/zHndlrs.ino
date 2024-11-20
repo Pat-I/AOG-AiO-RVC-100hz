@@ -24,12 +24,12 @@ struct VTG_DATA {
 };
 VTG_DATA VTG;
 
-struct HPR_DATA {
-  char heading[8];
-  char roll[8];
-  int solQuality;
-};
-HPR_DATA HPR;
+// struct HPR_DATA {
+//   char heading[8];
+//   char roll[8];
+//   int solQuality;
+// };
+// HPR_DATA HPR;
 
 struct IMU_DATA {
   char heading[6];

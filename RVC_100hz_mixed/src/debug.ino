@@ -40,6 +40,11 @@ void checkUSBSerial()
       printStats = !printStats;
       Serial.print("\r\nSetting Print Stats: "); Serial.print(printStats);
     }
+    else if (usbRead == 'f')      //output Fusion status
+    {
+      printFusion = !printFusion;
+      Serial.print("\r\n Setting Fusion Status: "); Serial.print(printFusion);
+    }
     #ifdef AIOv50a
     else if (usbRead == 'm' && Serial.available() > 0)    // set machine debug level
     {
@@ -127,6 +132,13 @@ void printTelem()
     #endif
 
     Serial.println();
+  }
+
+  if (printFusion)
+  {
+    Serial.print("\r\nAccelError:   ");Serial.print(ahrsStates.accelerationError);
+    Serial.print("\r\nAccelIgnore:  ");Serial.print(ahrsStates.accelerometerIgnored);
+    Serial.print("\r\nAccelRecover: ");Serial.print(ahrsStates.accelerationRecoveryTrigger);
   }
 
   testCounter = 0;

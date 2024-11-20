@@ -55,6 +55,8 @@ void setup()
   autosteerSetup();                         // Autosteer.ino
   CAN_Setup();                              //Start CAN3 for Keya
 
+  fusionSetup();                            //Start the IMU AHRS fusion algo
+
   Serial.println("\r\n\nEnd of setup, waiting for GPS...\r\n"); 
   delay(1);
   resetStartingTimersBuffers();             // setup.ino
@@ -408,36 +410,23 @@ void loop()
 
     WT901.receiveSerialData();
         
-    // Serial.print("Acc:");
-    // Serial.print(WT901.getAccX());
-    // Serial.print(" ");
-    // Serial.print(WT901.getAccY());
-    // Serial.print(" ");
-    // Serial.print(WT901.getAccZ());
-    // Serial.print("\n");
-
+    const FusionVector gyroscope = {WT901.getGyroX(), WT901.getGyroY(), WT901.getGyroZ()}; // replace this with actual gyroscope data in degrees/s
+    const FusionVector accelerometer = {WT901.getAccX(), WT901.getAccY(), WT901.getAccZ()}; // replace this with actual accelerometer data in g
     
-    // Serial.print("Gyro:");
-    // Serial.print(WT901.getGyroX());
-    // Serial.print(" ");
-    // Serial.print(WT901.getGyroY());
-    // Serial.print(" ");
-    // Serial.print(WT901.getGyroZ());
-    // Serial.print("\n");
-    
-    // Serial.print("Angle:");
-    // Serial.print(WT901.getRoll());
-    // Serial.print(" ");
-    // Serial.print(WT901.getPitch());
-    // Serial.print(" ");
-    // Serial.print(WT901.getYaw());
-    // Serial.print("\n");
+    //FusionAhrsUpdateNoMagnetometer(&ahrs, gyroscope, accelerometer, SAMPLE_PERIOD);
+    FusionAhrsUpdateExternalHeading(&ahrs, gyroscope, accelerometer, atof(HPR.heading),SAMPLE_PERIOD);
+    FusionAhrsGetInternalStates(&ahrs);
+    FusionAhrsGetFlags(&ahrs);
 
-    // Serial.println("");
+    const FusionEuler euler = FusionQuaternionToEuler(FusionAhrsGetQuaternion(&ahrs));
 
-  Serial.print(WT901.getAccX());Serial.print(",");Serial.print(WT901.getAccY());Serial.print(",");Serial.print(WT901.getAccZ());Serial.print(",");
-  Serial.print(WT901.getGyroX());Serial.print(",");Serial.print(WT901.getGyroY());Serial.print(",");Serial.print(WT901.getGyroZ());Serial.print(",");
-  Serial.print(WT901.getRoll());Serial.print(",");Serial.print(WT901.getPitch());Serial.print(",");Serial.print(WT901.getYaw());Serial.print("\n");
+    if (printFusion)
+    {
+    // Serial.print(WT901.getAccX());Serial.print(",");Serial.print(WT901.getAccY());Serial.print(",");Serial.print(WT901.getAccZ());Serial.print(",");
+    // Serial.print(WT901.getGyroX());Serial.print(",");Serial.print(WT901.getGyroY());Serial.print(",");Serial.print(WT901.getGyroZ());Serial.print(",");
+    // Serial.print(WT901.getRoll());Serial.print(",");Serial.print(WT901.getPitch());Serial.print(",");Serial.print(WT901.getYaw());Serial.print("\n");
+    Serial.printf("Roll %0.1f, Pitch %0.1f, Yaw %0.1f\n", euler.angle.roll, euler.angle.pitch, euler.angle.yaw);
+    }
 
   }
 } // end of loop()

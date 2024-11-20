@@ -40,6 +40,12 @@ void serialSetup()
   WT901.attach(SerialRS232);
 }
 
+void fusionSetup()
+{
+  FusionAhrsInitialise(&ahrs);
+  FusionAhrsSetSettings(&ahrs, &settings);
+}
+
 void parserSetup()
 {
   // the dash means wildcard

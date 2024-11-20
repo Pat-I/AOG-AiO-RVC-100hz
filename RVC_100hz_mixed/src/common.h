@@ -15,12 +15,34 @@ extern "C"
 #include "FlashTxx.h" // TLC/T3x/T4x/TMM flash primitives
 }
 
-// #include <REG.h>
-// #include <wit_c_sdk.h>
 #include "WT901.h"
 CWT901 WT901;
 elapsedMillis wtTimer;
 u_int8_t wtInterval = 10;
+
+#include <Fusion.h>
+#define SAMPLE_PERIOD (0.01f) // In seconds 
+#define SAMPLE_RATE (100)     // How many samples for agorithm to consider for various functions
+FusionAhrs ahrs;
+FusionAhrsInternalStates ahrsStates;
+FusionAhrsFlags ahrsFlags;
+
+// Set AHRS algorithm settings
+const FusionAhrsSettings settings = {
+  .convention = FusionConventionNwu,        //Earth axes convention (NWU, ENU, or NED).
+  .gain = 0.5f,                             //Determines the influence of the gyroscope relative to other sensors. A value of zero will disable initialisation and the acceleration and magnetic rejection features. A value of 0.5 is appropriate for most applications.
+  .gyroscopeRange = 2000.0f,                //Gyroscope range (in degrees per second). Angular rate recovery will activate if the gyroscope measurement exceeds 98% of this value. A value of zero will disable this feature. The value should be set to the range specified in the gyroscope datasheet.
+  .accelerationRejection = 10.0f,           //Threshold (in degrees) used by the acceleration rejection feature. A value of zero will disable this feature. A value of 10 degrees is appropriate for most applications.
+  .magneticRejection = 10.0f,               //Threshold (in degrees) used by the magnetic rejection feature. A value of zero will disable the feature. A value of 10 degrees is appropriate for most applications.
+  .recoveryTriggerPeriod = 1 * SAMPLE_RATE, //Acceleration and magnetic recovery trigger period (in samples). A value of zero will disable the acceleration and magnetic rejection features. A period of 5 seconds is appropriate for most applications.
+};
+
+struct HPR_DATA {
+  char heading[8];
+  char roll[8];
+  int solQuality;
+};
+HPR_DATA HPR;
 
 #include "LEDS.h"
 LEDS LEDs = LEDS(1000, 255, 64, 127);   // 1000ms RGB update, 255/64/127 RGB brightness balance levels for v5.0a
@@ -58,6 +80,7 @@ elapsedMillis bufferStatsTimer;
 uint32_t testCounter;
 bool printCpuUsages = false;
 bool printStats = false;
+bool printFusion = false;
 uint16_t ggaMissed;
 
 //#include "reset.h"    // no on board buttons for reset
