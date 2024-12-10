@@ -4,16 +4,16 @@
 #include <Streaming.h>
 #include "zADS1115.h"
 #include "IPAddress.h"
-#include <AsyncWebServer_Teensy41.h>
+// #include <AsyncWebServer_Teensy41.h>
 
-AsyncWebServer server(80); // Start web server OTA updates.
-bool ota_apply = 0;
+// AsyncWebServer server(80); // Start web server OTA updates.
+// bool ota_apply = 0;
 
-#include "FXUtil.h" // read_ascii_line(), hex file support
-extern "C"
-{
-#include "FlashTxx.h" // TLC/T3x/T4x/TMM flash primitives
-}
+// #include "FXUtil.h" // read_ascii_line(), hex file support
+// extern "C"
+// {
+// #include "FlashTxx.h" // TLC/T3x/T4x/TMM flash primitives
+// }
 
 
 #include "LEDS.h"
@@ -87,11 +87,11 @@ struct ntripData
 RingBuf *PGN_buf = RingBuf_new(sizeof(struct pgnData), 10);
 RingBuf *NTRIP_buf = RingBuf_new(sizeof(struct ntripData), 10);
 
-#include "QNEthernet.h"
-using namespace qindesign::network;
+// #include "QNEthernet.h"
+// using namespace qindesign::network;
 
-#include "Eth_UDP.h"
-Eth_UDP UDP = Eth_UDP();
+// #include "Eth_UDP.h"
+// Eth_UDP UDP = Eth_UDP();
 
 #include "clsPCA9555.h" // https://github.com/nicoverduin/PCA9555
 PCA9555 outputs(0x20);  // 0x20 - I2C addr (A0-A2 grounded), interrupt pin causes boot loop

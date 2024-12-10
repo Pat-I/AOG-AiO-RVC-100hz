@@ -44,13 +44,13 @@ void setup()
     Serial.print("\r\nSection outputs (PCA9555) detected (8 channels, low side switching)");
     machine.init(&outputs, pcaOutputPinNumbers, pcaInputPinNumbers, 100); // mach.h
   }
-  UDP.Eth_EEPROM();
-  if (UDP.init())                           // Eth_UDP.h
-    LEDs.set(LED_ID::PWR_ETH, PWR_ETH_STATE::ETH_READY);
-  else
-    LEDs.set(LED_ID::PWR_ETH, PWR_ETH_STATE::NO_ETH);
+  // UDP.Eth_EEPROM();
+  // if (UDP.init())                           // Eth_UDP.h
+  //   LEDs.set(LED_ID::PWR_ETH, PWR_ETH_STATE::ETH_READY);
+  // else
+  //   LEDs.set(LED_ID::PWR_ETH, PWR_ETH_STATE::NO_ETH);
 
-  ota_update_setup(); // Setup web pages for OTA_Update
+  // ota_update_setup(); // Setup web pages for OTA_Update
 
   autosteerSetup();                         // Autosteer.ino
   CAN_Setup();                              //Start CAN3 for Keya
@@ -62,21 +62,21 @@ void setup()
 
 void loop()
 {
-  // OTA_Update
-  if (ota_apply)
-  {
-    OTAapply();
-  }
-  // OTA_Update
+  // // OTA_Update
+  // if (ota_apply)
+  // {
+  //   OTAapply();
+  // }
+  // // OTA_Update
 
   KeyaBus_Receive();                        // KeyaCANBUS.ino, check for new messages from Keya steer motor
   
-  checkForPGNs();                           // zPGN.ino, check for AgIO or SerialESP32 Sending PGNs
-  PGNusage.timeOut();
+  //checkForPGNs();                           // zPGN.ino, check for AgIO or SerialESP32 Sending PGNs
+  //PGNusage.timeOut();
 
   autoSteerUpdate();                        // Autosteer.ino, update AS loop every 10ms (100hz) regardless of whether there is a BNO installed
-  udpNMEA();                                // zPGN.ino, check for NMEA via UDP
-  udpNtrip();                               // zPGN.ino check for RTCM via UDP (AgIO NTRIP client)
+  //udpNMEA();                                // zPGN.ino, check for NMEA via UDP
+  //udpNtrip();                               // zPGN.ino check for RTCM via UDP (AgIO NTRIP client)
     
   if (SerialRTK.available()) {              // Check for RTK Radio RTCM data
     uint8_t rtcmByte = SerialRTK.read();
@@ -165,10 +165,10 @@ void loop()
           // {
           //   SerialAOG.write(msgBuf);
           // } // Send USB GPS data if enabled in user settings
-          if (UDP.isRunning)
-          {
-            UDP.SendUdpAry(msgBuf, msgBufLen, UDP.broadcastIP, UDP.portAgIO_9999);
-          }
+          // if (UDP.isRunning)
+          // {
+          //   UDP.SendUdpAry(msgBuf, msgBufLen, UDP.broadcastIP, UDP.portAgIO_9999);
+          // }
           gotCR = false;
           gotLF = false;
           gotDollar = false;

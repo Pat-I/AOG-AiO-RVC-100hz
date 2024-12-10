@@ -198,14 +198,14 @@ void autoSteerUpdate() {
         if (prevSteerReading != steerState) {
           char msg[] = "AutoSteer Switch OFF";
           char msgTime = 2;
-          UDP.SendUdpFreeForm(1, msg, strlen(msg), msgTime, UDP.broadcastIP, UDP.portAgIO_9999);
+          //UDP.SendUdpFreeForm(1, msg, strlen(msg), msgTime, UDP.broadcastIP, UDP.portAgIO_9999);
           LEDs.activateBlueFlash(LED_ID::STEER);
         }
       } else if (steerReading == HIGH && prevSteerReading == LOW) {  // switch ON after prev being OFF
         steerState = steerReading;                                   // set ON
         char msg[] = "AutoSteer Switch ON";
         char msgTime = 2;
-        UDP.SendUdpFreeForm(1, msg, strlen(msg), msgTime, UDP.broadcastIP, UDP.portAgIO_9999);
+        //UDP.SendUdpFreeForm(1, msg, strlen(msg), msgTime, UDP.broadcastIP, UDP.portAgIO_9999);
         LEDs.activateBlueFlash(LED_ID::STEER);
       }
       prevSteerReading = steerReading;
@@ -220,7 +220,7 @@ void autoSteerUpdate() {
         if (steerState) msg = (char*)"AutoSteer Btn ON";
         else msg = (char*)"AutoSteer Btn OFF";
         char msgTime = 2;
-        UDP.SendUdpFreeForm(1, msg, strlen(msg), msgTime, UDP.broadcastIP, UDP.portAgIO_9999);
+        //UDP.SendUdpFreeForm(1, msg, strlen(msg), msgTime, UDP.broadcastIP, UDP.portAgIO_9999);
       }
       prevSteerReading = steerReading;  // get ready to detect next press
 
